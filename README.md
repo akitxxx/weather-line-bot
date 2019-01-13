@@ -1,24 +1,6 @@
 # README
+## description
+その日に傘が必要な場合は、朝7時に通知するLine bot。  
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
-
-Things you may want to cover:
-
-* Ruby version
-
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+heroku : https://ak-weather-line-bot.herokuapp.com/  
+provider : wheather-bot
