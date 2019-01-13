@@ -29,6 +29,10 @@ class LinebotController < ApplicationController
           xml  = open(url).read.toutf8
           doc = REXML::Document.new(xml)
           xpath = 'weatherforecast/pref/area[4]/'
+
+          # 降水確率のメッセージ
+          rainy_percent = "  6〜12時　#{per06to12}％\n　12〜18時　 #{per12to18}％\n　18〜24時　#{per18to24}％\n"
+
           # 当日朝のメッセージの送信の下限値は20％としているが、明日・明後日雨が降るかどうかの下限値は30％としている
           min_per = 30
           case input
@@ -40,7 +44,7 @@ class LinebotController < ApplicationController
             per18to24 = doc.elements[xpath + 'info[2]/rainfallchance/period[4]'].text
             if per06to12.to_i >= min_per || per12to18.to_i >= min_per || per18to24.to_i >= min_per
               push =
-                "明日の天気だよね。\n明日は雨が降りそうだよ、、、\n今のところ降水確率はこんな感じだよ。\n　  6〜12時　#{per06to12}％\n　12〜18時　 #{per12to18}％\n　18〜24時　#{per18to24}％\nまた明日の朝の最新の天気予報で雨が降りそうだったら教えるね！"
+                "明日の天気だよね。\n明日は雨が降りそうだよ、、、\n今のところ降水確率はこんな感じだよ。\n#{rainy_percent}また明日の朝の最新の天気予報で雨が降りそうだったら教えるね！"
             else
               push =
                 "明日の天気？\n明日は雨が降らない予定だよ！\nまた明日の朝の最新の天気予報で雨が降りそうだったら教えるね！"
@@ -61,7 +65,7 @@ class LinebotController < ApplicationController
               "ありがとう！！！\n"
           when /.*(こんにちは|こんばんは|初めまして|はじめまして|おはよう).*/
             push =
-              "こんにちは。\n声をかけてくれてありがとう\n今日があなたにとっていい日になりますように(^^)"
+              "こんにちは。\n声をかけてくれてありがとう\n"
           when /.*(すき|好き).*/
             push =
               'ぼくも好きだよ！'
@@ -74,7 +78,7 @@ class LinebotController < ApplicationController
                 ['雨だけど元気出していこうね！',
                  '雨ニモマケズ！！'].sample
               push =
-                "今日の天気？\n今日は雨が降りそうだから傘があった方が安心だよ。\n　  6〜12時　#{per06to12}％\n　12〜18時　 #{per12to18}％\n　18〜24時　#{per18to24}％\n#{word}"
+                "今日の天気？\n今日は雨が降りそうだから傘があった方が安心だよ。\n#{rainy_percent}\n#{word}"
             else
               word =
                 ['雨じゃなくてよかった！'].sample
