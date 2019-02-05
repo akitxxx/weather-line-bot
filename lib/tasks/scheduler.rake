@@ -30,8 +30,8 @@ task update_feed: :environment do
       ['おはよう！',
        'おはよん'].sample
     word2 =
-      ['雨の心配はなさそうだよ！',
-       '今日は天気がいいよ！'].sample
+      ['雨が降るかもしれないから折りたたみ傘を持っていこう！',
+       '今日は雨が降るかもしれないよ！'].sample
     # 降水確率によってメッセージを変更する閾値の設定
     mid_per = 70
     if per06to12.to_i >= mid_per || per12to18.to_i >= mid_per || per18to24.to_i >= mid_per
