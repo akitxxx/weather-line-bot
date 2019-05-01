@@ -9,6 +9,8 @@ class LinebotController < ApplicationController
   # callbackアクションのCSRFトークン認証を無効
   protect_from_forgery except: [:callback]
 
+  is_setting_mode = false
+
   def callback
     body = request.body.read
     signature = request.env['HTTP_X_LINE_SIGNATURE']
@@ -33,6 +35,11 @@ class LinebotController < ApplicationController
           # 当日朝のメッセージの送信の下限値は20％としているが、明日・明後日雨が降るかどうかの下限値は30％としている
           min_per = 30
           case input
+
+          # 「設定」or「せってい」というワードが含まれる場合、設定フラグを立ててメッセージを返す
+          when /.*(設定|せってい).*/
+            is_setting_mode = true
+            push = '降水確率を通知時間の設定をするよ！/n'
 
             # 「明日」or「あした」というワードが含まれる場合
           when /.*(明日|あした).*/
@@ -106,7 +113,34 @@ class LinebotController < ApplicationController
           text: push
         }
         client.reply_message(event['replyToken'], message)
-        # LINEお友達追された場合（機能②）
+
+        if is_setting_mode
+          settingMessage = {
+            "type": 'template',
+            "altText": 'this is a buttons template',
+            "template": {
+              "type": 'buttons',
+              "title": '空いてる日程教えてよ',
+              "text": 'Please select',
+              "actions": [
+                {
+                  "type": 'datetimepicker',
+                  "label": 'いいよ',
+                  "mode": 'date',
+                  "data": 'action=datetemp&selectId=1'
+                },
+                {
+                  "type": 'postback',
+                  "label": 'やっぱりやめたい',
+                  "data": 'action=cancel&selectId=2'
+                }
+              ]
+            }
+          }
+          client.reply_message(event['replyToken'], settingMessage)
+        end
+
+      # LINEお友達追された場合（機能②）
       when Line::Bot::Event::Follow
         # 登録したユーザーのidをユーザーテーブルに格納
         line_id = event['source']['userId']
