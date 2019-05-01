@@ -9,8 +9,6 @@ class LinebotController < ApplicationController
   # callbackアクションのCSRFトークン認証を無効
   protect_from_forgery except: [:callback]
 
-  is_setting_mode = false
-
   def callback
     body = request.body.read
     signature = request.env['HTTP_X_LINE_SIGNATURE']
@@ -20,9 +18,32 @@ class LinebotController < ApplicationController
     events = client.parse_events_from(body)
     events.each do |event|
       case event
+
+      # postbackの場合の対応
+      when Line::Bot::Event::Postback
+
+        postback_action = event['postback']['data'].split('=')[2]
+
+        if postback_action == '1'
+          setting_message = {
+            type: 'text',
+            text: '通知時間を設定したよ！'
+          }
+        elsif postback_action == '2'
+          setting_message = {
+            type: 'text',
+            text: 'キャンセルしたよ'
+          }
+        end
+        client.reply_message(event['replyToken'], setting_message)
+
         # メッセージが送信された場合の対応（機能①）
       when Line::Bot::Event::Message
+        # 設定モードか
+        is_setting_mode = false
+
         case event.type
+
           # ユーザーからテキスト形式のメッセージが送られて来た場合
         when Line::Bot::Event::MessageType::Text
           # event.message['text']：ユーザーから送られたメッセージ
@@ -39,7 +60,7 @@ class LinebotController < ApplicationController
           # 「設定」or「せってい」というワードが含まれる場合、設定フラグを立ててメッセージを返す
           when /.*(設定|せってい).*/
             is_setting_mode = true
-            push = '降水確率を通知時間の設定をするよ！/n'
+            push = "降水確率の通知時間を設定するよ！\n"
 
             # 「明日」or「あした」というワードが含まれる場合
           when /.*(明日|あした).*/
@@ -108,44 +129,45 @@ class LinebotController < ApplicationController
         else
           push = 'なんじゃい'
         end
-        message = {
-          type: 'text',
-          text: push
-        }
-        client.reply_message(event['replyToken'], message)
 
-        if is_setting_mode
-          settingMessage = {
-            "type": 'template',
-            "altText": 'this is a buttons template',
-            "template": {
-              "type": 'buttons',
-              "title": '空いてる日程教えてよ',
-              "text": 'Please select',
-              "actions": [
-                {
-                  "type": 'datetimepicker',
-                  "label": 'いいよ',
-                  "mode": 'date',
-                  "data": 'action=datetemp&selectId=1'
-                },
-                {
-                  "type": 'postback',
-                  "label": 'やっぱりやめたい',
-                  "data": 'action=cancel&selectId=2'
-                }
-              ]
-            }
-          }
-          client.reply_message(event['replyToken'], settingMessage)
-        end
+        message = if is_setting_mode
+                    {
+                      "type": 'template',
+                      "altText": '通知時間を設定',
+                      "template": {
+                        "type": 'buttons',
+                        "title": '通知時間を設定',
+                        "text": '雨が振りそうな日に通知する時間を設定してね',
+                        "actions": [
+                          {
+                            "type": 'datetimepicker',
+                            "label": '設定する',
+                            "mode": 'time',
+                            "data": 'action=datetemp&selectId=1'
+                          },
+                          {
+                            "type": 'postback',
+                            "label": 'キャンセル',
+                            "data": 'action=cancel&selectId=2'
+                          }
+                        ]
+                      }
+                    }
+                  else
+                    {
+                      type: 'text',
+                      text: push
+                    }
+                  end
+        client.reply_message(event['replyToken'], message)
 
       # LINEお友達追された場合（機能②）
       when Line::Bot::Event::Follow
         # 登録したユーザーのidをユーザーテーブルに格納
         line_id = event['source']['userId']
         User.create(line_id: line_id)
-        # LINEお友達解除された場合（機能③）
+
+      # LINEお友達解除された場合（機能③）
       when Line::Bot::Event::Unfollow
         # お友達解除したユーザーのデータをユーザーテーブルから削除
         line_id = event['source']['userId']
